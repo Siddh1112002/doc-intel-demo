@@ -313,50 +313,78 @@ function renderDatesTable(dates, text) {
 }
 
 function findLineContext(text, token) {
-  if (!text) return "";
+  if (!text) return "—";
 
-  const cleanToken = token.replace(/[^\d.]/g, ""); 
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean);
 
-  let candidates = [];
+  const cleanToken = token.replace(/[^\d.]/g, "");
 
-  lines.forEach((line, index) => {
+  if (!cleanToken) return "—";
+
+  // 1. Find best matching line index for this amount
+  let best = null;
+
+  lines.forEach((line, idx) => {
     const cleanLine = line.replace(/[^\d.]/g, "");
+    if (!cleanLine.includes(cleanToken)) return;
 
-    // 1. Exact numeric equality (best match)
-    if (cleanLine === cleanToken) {
-      candidates.push({ score: 3, line, index });
+    let score = 0;
+
+    // exact numeric match is better than partial
+    if (cleanLine === cleanToken) score += 2;
+    else score += 1;
+
+    const hasLetters = /[A-Za-z]/.test(line);
+    if (hasLetters) score += 3;
+
+    const lower = line.toLowerCase();
+    const keywords = [
+      "subtotal",
+      "total",
+      "tax",
+      "due",
+      "amount",
+      "consulting",
+      "services",
+      "license",
+      "hardware",
+      "reimbursement",
+      "credit"
+    ];
+    for (const k of keywords) {
+      if (lower.includes(k)) score += 1.5;
     }
-    // 2. Contains the amount but not part of a bigger number
-    else if (cleanLine.includes(cleanToken)) {
-      const regex = new RegExp(`\\b${cleanToken}\\b`);
-      if (regex.test(cleanLine)) {
-        candidates.push({ score: 2, line, index });
+
+    if (!best || score > best.score) {
+      best = { score, idx };
+    }
+  });
+
+  if (!best) return "—";
+
+  let line = lines[best.idx];
+
+  // 2. If the line is mostly just the number (no words),
+  //    look at previous lines for a description and join them.
+  const isNumericOnly =
+    !/[A-Za-z]/.test(line) || line.length <= cleanToken.length + 2;
+
+  if (isNumericOnly) {
+    for (let i = best.idx - 1; i >= 0; i--) {
+      const candidate = lines[i];
+      if (/[A-Za-z]/.test(candidate)) {
+        return `${candidate} — ${line}`;
       }
     }
-  });
+  }
 
-  // Add contextual scoring – prefer lines with keywords
-  const keywords = [
-    "subtotal", "total", "tax", "due", "amount", "qty",
-    "professional", "consulting", "hardware", "license",
-    "services", "travel", "reimbursement", "credit"
-  ];
-  
-  candidates = candidates.map(c => {
-    let extra = 0;
-    const lower = c.line.toLowerCase();
-    for (const key of keywords) {
-      if (lower.includes(key)) extra += 2;
-    }
-    return { ...c, score: c.score + extra };
-  });
-
-  // Sort best → worst
-  candidates.sort((a, b) => b.score - a.score);
-
-  return candidates.length ? candidates[0].line : "—";
+  // 3. Otherwise just return the matching line
+  return line;
 }
+
 
 
 function highlightText(line) {
