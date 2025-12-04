@@ -13,11 +13,18 @@ import aiofiles
 from fastapi.middleware.cors import CORSMiddleware
 
 
-app = FastAPI(title="Document Intelligence (demo)")
+app = FastAPI(title="Document Intelligence (local demo) - enhanced")
+
+# Allow frontend on Vercel + local dev
+origins = [
+    "http://localhost:3000",
+    "https://localhost:3000",
+    "https://your-vercel-app-name.vercel.app",  # <- change this after deploy
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # later you can restrict to your Vercel URL
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

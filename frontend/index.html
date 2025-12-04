@@ -1,0 +1,634 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Document Intelligence</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#020617;
+      --bg2:#02051a;
+      --card:#020617;
+      --muted:#9ca3af;
+      --accent:#4f46e5;
+      --accent-2:#06b6d4;
+      --glass: rgba(15,23,42,0.9);
+      --radius:14px;
+      --shadow: 0 20px 70px rgba(15,23,42,0.9);
+      --text:#e5e7eb;
+    }
+    *{box-sizing:border-box;}
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(circle at top left,#111827 0,#020617 42%,#000 100%);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+    }
+    .wrap{
+      max-width:1220px;
+      margin:28px auto 40px;
+      padding:0 16px 16px;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      margin-bottom:14px;
+    }
+    .logo{
+      width:46px;
+      height:46px;
+      border-radius:16px;
+      display:grid;
+      place-items:center;
+      background:conic-gradient(from 160deg, #4f46e5, #22d3ee, #a855f7, #4f46e5);
+      box-shadow:0 10px 30px rgba(79,70,229,0.4);
+      font-weight:800;
+      letter-spacing:0.05em;
+      color:white;
+      font-size:18px;
+    }
+    header h1{
+      margin:0;
+      font-size:22px;
+      letter-spacing:-0.02em;
+    }
+    header p{
+      margin:2px 0 0;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .controls{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      background:linear-gradient(135deg,rgba(15,23,42,0.98),rgba(15,23,42,0.85));
+      border-radius:18px;
+      padding:12px 14px;
+      border:1px solid rgba(148,163,184,0.25);
+      box-shadow:var(--shadow);
+    }
+
+    .file-wrapper{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:1;
+      padding:10px 12px;
+      background:rgba(15,23,42,0.8);
+      border-radius:12px;
+      cursor:pointer;
+      border:1px solid rgba(148,163,184,0.32);
+      transition:border 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .file-wrapper:hover{
+      border-color:rgba(129,140,248,0.9);
+      box-shadow:0 0 0 1px rgba(129,140,248,0.4);
+      background:rgba(15,23,42,0.92);
+    }
+    .file-icon{
+      width:32px;
+      height:32px;
+      border-radius:10px;
+      display:grid;
+      place-items:center;
+      background:radial-gradient(circle at 30% 0%, #4f46e5, #0f172a);
+      color:#e5e7eb;
+      font-size:16px;
+    }
+    .file-info{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .file-name{
+      font-weight:600;
+      font-size:14px;
+    }
+    .file-meta{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    input[type=file]{
+      position:absolute;
+      left:-9999px;
+    }
+    .btn{
+      padding:9px 14px;
+      border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),#7c3aed);
+      color:white;
+      border:none;
+      font-weight:600;
+      cursor:pointer;
+      font-size:13px;
+      box-shadow:0 12px 30px rgba(79,70,229,0.45);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .btn:disabled{
+      opacity:0.55;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+    .btn.secondary{
+      background:rgba(15,23,42,0.9);
+      border:1px solid rgba(148,163,184,0.45);
+      box-shadow:none;
+      color:var(--muted);
+    }
+    .btn.secondary:hover:not(:disabled){
+      border-color:rgba(129,140,248,0.9);
+      color:#e5e7eb;
+    }
+
+    .layout{
+      display:flex;
+      gap:18px;
+      margin-top:18px;
+      align-items:flex-start;
+    }
+    .left{
+      flex:1.1;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .right{
+      flex:0.9;
+      max-width:360px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .card{
+      background:radial-gradient(circle at top left,rgba(148,163,184,0.18),rgba(15,23,42,0.96));
+      border-radius:18px;
+      padding:16px 16px 14px;
+      border:1px solid rgba(148,163,184,0.25);
+      box-shadow:0 18px 50px rgba(15,23,42,0.9);
+    }
+    .card h3{
+      margin:0 0 8px;
+      font-size:15px;
+      letter-spacing:-0.01em;
+    }
+    .summary{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.5;
+      max-height:120px;
+      overflow:auto;
+      padding-right:4px;
+    }
+
+    .extracted{
+      display:flex;
+      gap:12px;
+    }
+    textarea#extractedText{
+      width:100%;
+      min-height:380px;
+      resize:vertical;
+      border-radius:12px;
+      padding:14px 14px 12px;
+      font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size:13px;
+      color:#e5e7eb;
+      background:radial-gradient(circle at 0 0, rgba(37,99,235,0.08), rgba(15,23,42,0.98));
+      border:1px solid rgba(30,64,175,0.6);
+      line-height:1.45;
+      overflow:auto;
+      box-shadow:inset 0 0 0 1px rgba(15,23,42,0.85);
+    }
+
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .key-field{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      padding:9px 10px;
+      background:rgba(15,23,42,0.9);
+      border-radius:12px;
+      margin-bottom:8px;
+      font-size:13px;
+      border:1px solid rgba(148,163,184,0.28);
+    }
+    .key-field-label{
+      color:var(--muted);
+    }
+    .key-field-value{
+      font-weight:600;
+      color:#e5e7eb;
+      text-align:right;
+      max-width:60%;
+      word-break:break-word;
+    }
+
+    .small{
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:4px;
+      border-radius:10px;
+      overflow:hidden;
+    }
+    .table thead th{
+      text-align:left;
+      color:var(--muted);
+      font-size:12px;
+      padding:8px 10px;
+      border-bottom:1px solid rgba(148,163,184,0.28);
+      background:rgba(15,23,42,0.95);
+    }
+    .table tbody td{
+      padding:9px 10px;
+      border-bottom:1px dashed rgba(31,41,55,0.85);
+      color:#e5e7eb;
+      font-size:12.5px;
+      vertical-align:top;
+    }
+    .table tbody tr:hover{
+      background:rgba(37,99,235,0.18);
+      cursor:pointer;
+    }
+
+    .actions{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    @media (max-width: 980px){
+      .layout{ flex-direction:column; }
+      .right{ max-width:none; }
+      textarea#extractedText{ min-height:260px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">DI</div>
+      <div>
+        <h1>Document Intelligence</h1>
+        <p>Upload a PDF or image to extract text, key invoice fields, and see amount/date context instantly.</p>
+      </div>
+    </header>
+
+    <div class="controls" title="Click to choose a file">
+      <!-- Single native file-open flow -->
+      <label class="file-wrapper">
+        <input id="fileInput" type="file" accept=".pdf,image/*" />
+        <div class="file-icon">📄</div>
+        <div class="file-info">
+          <div class="file-name" id="fileName">No file chosen</div>
+          <div class="file-meta" id="fileMeta">Click here to select a PDF or image</div>
+        </div>
+      </label>
+
+      <button id="btnUpload" class="btn" type="button">
+        <span>Upload & Analyze</span>
+      </button>
+    </div>
+
+    <div class="layout">
+      <div class="left">
+        <div class="card">
+          <h3>Summary</h3>
+          <div id="summary" class="summary">No file uploaded yet.</div>
+        </div>
+
+        <div class="card">
+          <h3>Extracted Text</h3>
+          <div class="extracted">
+            <textarea id="extractedText" placeholder="Extracted text will appear here..." readonly></textarea>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+            <div class="hint">
+              Tip: click a row in the tables below to highlight the matching line in the extracted text.
+            </div>
+            <button id="btnCopy" class="btn secondary" type="button">Copy text</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Amounts → Context (what each amount refers to)</h3>
+          <div id="amountsSection">
+            <div class="small">Once analyzed, every detected amount is mapped back to the line where it appears.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Dates → Context (what each date refers to)</h3>
+          <div id="datesSection">
+            <div class="small">Detected dates (invoice date, due date, etc.) will appear with their surrounding line.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="card">
+          <h3>Key Fields</h3>
+          <div class="key-field">
+            <div class="key-field-label">Vendor</div>
+            <div class="key-field-value" id="f_vendor">—</div>
+          </div>
+          <div class="key-field">
+            <div class="key-field-label">Invoice #</div>
+            <div class="key-field-value" id="f_invoice">—</div>
+          </div>
+          <div class="key-field">
+            <div class="key-field-label">Dates</div>
+            <div class="key-field-value" id="f_dates">—</div>
+          </div>
+          <div class="key-field">
+            <div class="key-field-label">Amounts</div>
+            <div class="key-field-value" id="f_amounts">—</div>
+          </div>
+
+          <div class="actions">
+            <button id="btnExportJson" class="btn secondary" type="button" disabled>Export JSON</button>
+            <button id="btnCopyAmounts" class="btn secondary" type="button" disabled>Copy amounts</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const fileInput       = document.getElementById('fileInput');
+  const fileNameEl      = document.getElementById('fileName');
+  const fileMetaEl      = document.getElementById('fileMeta');
+  const btnUpload       = document.getElementById('btnUpload');
+  const extractedTextEl = document.getElementById('extractedText');
+  const summaryEl       = document.getElementById('summary');
+  const amountsSection  = document.getElementById('amountsSection');
+  const datesSection    = document.getElementById('datesSection');
+  const f_vendor        = document.getElementById('f_vendor');
+  const f_invoice       = document.getElementById('f_invoice');
+  const f_dates         = document.getElementById('f_dates');
+  const f_amounts       = document.getElementById('f_amounts');
+  const btnExportJson   = document.getElementById('btnExportJson');
+  const btnCopy         = document.getElementById('btnCopy');
+  const btnCopyAmounts  = document.getElementById('btnCopyAmounts');
+
+  let lastFilename = null;
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    if (!f) {
+      fileNameEl.textContent = 'No file chosen';
+      fileMetaEl.textContent = 'Click here to select a PDF or image';
+      return;
+    }
+    fileNameEl.textContent = f.name;
+    const sizeKB = Math.round(f.size / 1024);
+    fileMetaEl.textContent = `${sizeKB} KB • ${f.type || 'file'}`;
+  });
+
+  btnUpload.addEventListener('click', async () => {
+    const f = fileInput.files[0];
+    if (!f) {
+      alert('Please choose a file first.');
+      return;
+    }
+
+    btnUpload.disabled = true;
+    const originalText = btnUpload.textContent;
+    btnUpload.textContent = 'Analyzing...';
+    summaryEl.textContent = 'Processing document on server...';
+
+    const fd = new FormData();
+    fd.append('file', f);
+
+    try {
+      const res = await fetch('/upload', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const txt = await res.text();
+        summaryEl.textContent = `Server error: ${res.status} ${txt}`;
+        btnUpload.textContent = originalText;
+        btnUpload.disabled = false;
+        return;
+      }
+
+      const j = await res.json();
+      lastFilename = j.filename || f.name;
+
+      const text = j.clean_text || j.text || '';
+      extractedTextEl.value = text || '';
+
+      if (j.error) {
+        const errDetail = j.error.detail || JSON.stringify(j.error);
+        summaryEl.textContent = `Partial result — server reported: ${errDetail}`;
+      } else {
+        summaryEl.textContent = j.summary || 'Extraction complete.';
+      }
+
+      const fields = j.fields || {};
+      f_vendor.textContent  = fields.vendor || fields.client || '—';
+      f_invoice.textContent = fields.invoice || fields.invoice_no || '—';
+
+      let amounts = Array.isArray(fields.amounts) ? fields.amounts.map(String)
+                   : fields.amounts ? [String(fields.amounts)] : [];
+      let dates   = Array.isArray(fields.dates) ? fields.dates.map(String)
+                   : fields.dates ? [String(fields.dates)] : [];
+
+      if (!amounts.length) {
+        const amtRegex = /(?:USD\s*)?(?:\$)?\d{1,3}(?:[,\d]*)(?:\.\d{1,2})?/g;
+        const found = new Set();
+        let m;
+        while ((m = amtRegex.exec(text)) !== null) found.add(m[0]);
+        amounts = Array.from(found);
+      }
+
+      if (!dates.length) {
+        const r1 = /\b\d{4}-\d{2}-\d{2}\b/g;
+        const r2 = /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g;
+        const r3 = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s*\d{4}\b/ig;
+        const found = new Set();
+        let mm;
+        [r1, r2, r3].forEach(rx => {
+          while ((mm = rx.exec(text)) !== null) found.add(mm[0]);
+        });
+        dates = Array.from(found);
+      }
+
+      amounts = Array.from(new Set(amounts)).slice(0, 60);
+      dates   = Array.from(new Set(dates)).slice(0, 60);
+
+      f_amounts.textContent = amounts.length ? amounts.join(' • ') : '—';
+      f_dates.textContent   = dates.length   ? dates.join(' • ')   : '—';
+
+      renderAmountsTable(amounts, text);
+      renderDatesTable(dates, text);
+
+      btnExportJson.disabled  = false;
+      btnCopyAmounts.disabled = false;
+
+    } catch (err) {
+      console.error(err);
+      summaryEl.textContent = 'Request failed: ' + (err.message || err);
+    } finally {
+      btnUpload.disabled = false;
+      btnUpload.textContent = originalText;
+    }
+  });
+
+  function renderAmountsTable(amounts, text) {
+    amountsSection.innerHTML = '';
+    if (!amounts.length) {
+      amountsSection.innerHTML = '<div class="small">No amounts detected.</div>';
+      return;
+    }
+    const tbl = document.createElement('table');
+    tbl.className = 'table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>Amount</th><th>Context / line</th></tr>';
+    const tbody = document.createElement('tbody');
+    tbl.appendChild(thead);
+    tbl.appendChild(tbody);
+
+    for (const a of amounts) {
+      const tr = document.createElement('tr');
+      const tdA = document.createElement('td');
+      tdA.textContent = a;
+      const ctx = findLineContext(text, a) || '—';
+      const tdC = document.createElement('td');
+      tdC.textContent = ctx;
+      tr.appendChild(tdA);
+      tr.appendChild(tdC);
+      tr.addEventListener('click', () => highlightText(ctx || a));
+      tbody.appendChild(tr);
+    }
+    amountsSection.appendChild(tbl);
+  }
+
+  function renderDatesTable(dates, text) {
+    datesSection.innerHTML = '';
+    if (!dates.length) {
+      datesSection.innerHTML = '<div class="small">No dates detected.</div>';
+      return;
+    }
+    const tbl = document.createElement('table');
+    tbl.className = 'table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>Date</th><th>Context / line</th></tr>';
+    const tbody = document.createElement('tbody');
+    tbl.appendChild(thead);
+    tbl.appendChild(tbody);
+
+    for (const d of dates) {
+      const tr = document.createElement('tr');
+      const tdD = document.createElement('td');
+      tdD.textContent = d;
+      const ctx = findLineContext(text, d) || '—';
+      const tdC = document.createElement('td');
+      tdC.textContent = ctx;
+      tr.appendChild(tdD);
+      tr.appendChild(tdC);
+      tr.addEventListener('click', () => highlightText(ctx || d));
+      tbody.appendChild(tr);
+    }
+    datesSection.appendChild(tbl);
+  }
+
+  function findLineContext(text, token) {
+    if (!text) return '';
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    for (const ln of lines) if (ln.includes(token)) return ln;
+    const digits = token.replace(/[^\d.]/g, '');
+    if (digits) {
+      for (const ln of lines) if (ln.includes(digits)) return ln;
+    }
+    const lowerToken = token.toLowerCase();
+    for (const ln of lines) if (ln.toLowerCase().includes(lowerToken)) return ln;
+    return '';
+  }
+
+  function highlightText(line) {
+    if (!line) return;
+    const text = extractedTextEl.value;
+    let idx = text.indexOf(line);
+    if (idx === -1) {
+      const digits = line.replace(/[^\d]/g, '');
+      if (!digits) return;
+      idx = text.indexOf(digits);
+      if (idx === -1) return;
+      extractedTextEl.focus();
+      extractedTextEl.setSelectionRange(idx, idx + digits.length);
+      return;
+    }
+    extractedTextEl.focus();
+    extractedTextEl.setSelectionRange(idx, idx + line.length);
+  }
+
+  btnCopy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(extractedTextEl.value || '');
+      const original = btnCopy.textContent;
+      btnCopy.textContent = 'Copied';
+      setTimeout(() => btnCopy.textContent = original, 1200);
+    } catch (e) {
+      alert('Copy failed: ' + e);
+    }
+  });
+
+  btnCopyAmounts.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(f_amounts.textContent || '');
+      const original = btnCopyAmounts.textContent;
+      btnCopyAmounts.textContent = 'Copied';
+      setTimeout(() => btnCopyAmounts.textContent = original, 1200);
+    } catch (e) {
+      alert('Copy failed: ' + e);
+    }
+  });
+
+  btnExportJson.addEventListener('click', async () => {
+    if (!lastFilename) {
+      alert('Upload a file first.');
+      return;
+    }
+    try {
+      const url = `/export_json?filename=${encodeURIComponent(lastFilename)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const txt = await res.text();
+        alert('Export JSON failed: ' + txt);
+        return;
+      }
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = lastFilename + '.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      alert('Export JSON failed: ' + e);
+    }
+  });
+
+  (function init(){
+    btnExportJson.disabled  = true;
+    btnCopyAmounts.disabled = true;
+  })();
+</script>
+</body>
+</html>
