@@ -10,6 +10,18 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import aiofiles
+from fastapi.middleware.cors import CORSMiddleware
+
+
+app = FastAPI(title="Document Intelligence (demo)")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # later you can restrict to your Vercel URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # optional imports
 ocr_extract = None
