@@ -17,9 +17,7 @@ app = FastAPI(title="Document Intelligence (local demo) - enhanced")
 
 # Allow frontend on Vercel + local dev
 origins = [
-    "http://localhost:3000",
-    "https://localhost:3000",
-    "https://your-vercel-app-name.vercel.app",  # <- change this after deploy
+  "https://doc-intel-demo.vercel.app",
 ]
 
 app.add_middleware(
