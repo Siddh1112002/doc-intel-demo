@@ -313,14 +313,51 @@ function renderDatesTable(dates, text) {
 }
 
 function findLineContext(text, token) {
-  if (!text) return '';
-  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-  for (const ln of lines) if (ln.includes(token)) return ln;
-  const digits = token.replace(/[^\d.]/g,'');
-  if (digits) for (const ln of lines) if (ln.includes(digits)) return ln;
-  for (const ln of lines) if (ln.toLowerCase().includes(token.toLowerCase())) return ln;
-  return '';
+  if (!text) return "";
+
+  const cleanToken = token.replace(/[^\d.]/g, ""); 
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  let candidates = [];
+
+  lines.forEach((line, index) => {
+    const cleanLine = line.replace(/[^\d.]/g, "");
+
+    // 1. Exact numeric equality (best match)
+    if (cleanLine === cleanToken) {
+      candidates.push({ score: 3, line, index });
+    }
+    // 2. Contains the amount but not part of a bigger number
+    else if (cleanLine.includes(cleanToken)) {
+      const regex = new RegExp(`\\b${cleanToken}\\b`);
+      if (regex.test(cleanLine)) {
+        candidates.push({ score: 2, line, index });
+      }
+    }
+  });
+
+  // Add contextual scoring – prefer lines with keywords
+  const keywords = [
+    "subtotal", "total", "tax", "due", "amount", "qty",
+    "professional", "consulting", "hardware", "license",
+    "services", "travel", "reimbursement", "credit"
+  ];
+  
+  candidates = candidates.map(c => {
+    let extra = 0;
+    const lower = c.line.toLowerCase();
+    for (const key of keywords) {
+      if (lower.includes(key)) extra += 2;
+    }
+    return { ...c, score: c.score + extra };
+  });
+
+  // Sort best → worst
+  candidates.sort((a, b) => b.score - a.score);
+
+  return candidates.length ? candidates[0].line : "—";
 }
+
 
 function highlightText(line) {
   if (!line) return;
