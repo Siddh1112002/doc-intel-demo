@@ -1,0 +1,22 @@
+# Python venv
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local data/uploads
+uploads/
+data/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log

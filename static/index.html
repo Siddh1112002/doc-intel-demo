@@ -1,0 +1,388 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Document Intelligence — Local Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    /* Clean, modern dark theme with larger extracted-text area and
+       a right-hand sidebar for actions & key fields (keeps layout like your earlier UI) */
+    :root{
+      --bg:#0b1220;
+      --card:#0f1724;
+      --muted:#9aa4b2;
+      --accent:#4f46e5;
+      --accent-2:#06b6d4;
+      --glass: rgba(255,255,255,0.02);
+      --radius:12px;
+      --shadow: 0 10px 30px rgba(2,6,23,0.6);
+      --text:#e6eef8;
+    }
+    html,body{height:100%; margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#071026,#081325); color:var(--text); -webkit-font-smoothing:antialiased}
+    .wrap { max-width:1200px; margin:28px auto; padding:0 14px; }
+    header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .logo { width:44px;height:44px; border-radius:10px; display:grid;place-items:center;
+      background: linear-gradient(135deg,var(--accent), #7c3aed); box-shadow:0 8px 24px rgba(79,70,229,0.18); font-weight:800; color:white; }
+    header h1 { margin:0; font-size:20px; letter-spacing:-0.2px }
+    header p { margin:0; color:var(--muted); font-size:13px }
+
+    .controls { display:flex; gap:12px; align-items:center; background:var(--glass); border-radius:14px; padding:12px; box-shadow:var(--shadow); border:1px solid rgba(255,255,255,0.03) }
+    .file-wrapper { display:flex; align-items:center; gap:12px; flex:1; padding:10px 12px; background:rgba(255,255,255,0.01); border-radius:10px; cursor:pointer; }
+    .file-info { display:flex; flex-direction:column; gap:4px; }
+    .file-name { font-weight:700; color:var(--text) }
+    .file-meta { font-size:13px; color:var(--muted) }
+
+    input[type=file]{ position: absolute; left:-9999px; } /* hidden; label used for click */
+    .btn { padding:9px 14px; border-radius:10px; background:linear-gradient(90deg,var(--accent), #7c3aed); color:white; border:none; font-weight:700; cursor:pointer; box-shadow:0 10px 24px rgba(79,70,229,0.16) }
+    .btn.secondary { background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); padding:8px 12px; font-weight:600 }
+
+    .layout { display:flex; gap:18px; margin-top:18px; align-items:flex-start; }
+    .left { flex:1; display:flex; flex-direction:column; gap:14px; }
+    .right { width:320px; display:flex; flex-direction:column; gap:14px; }
+
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px; padding:16px; box-shadow:var(--shadow); border:1px solid rgba(255,255,255,0.03) }
+    .summary { font-size:13px; color:var(--muted); line-height:1.35; max-height:120px; overflow:auto; }
+    .extracted { display:flex; gap:12px; }
+    textarea#extractedText { width:100%; min-height:360px; resize:vertical; border-radius:10px; padding:14px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; color:#dbeafe; background:rgba(3,8,18,0.6); border:1px solid rgba(255,255,255,0.03); line-height:1.45; overflow:auto; }
+    .hint { font-size:13px; color:var(--muted); margin-top:8px }
+
+    .key-field { display:flex; justify-content:space-between; padding:10px; background:rgba(255,255,255,0.01); border-radius:8px; margin-bottom:8px; font-size:13px; color:var(--muted) }
+    .key-field strong { color:var(--text); font-weight:700 }
+
+    .table { width:100%; border-collapse:collapse; margin-top:6px }
+    .table thead th { text-align:left; color:var(--muted); font-size:13px; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.03) }
+    .table tbody td { padding:12px; border-bottom:1px dashed rgba(255,255,255,0.02); color:#dbeafe; font-size:13px; vertical-align:top }
+    .table tbody tr:hover { background: rgba(255,255,255,0.01); cursor:pointer }
+
+    .actions { display:flex; flex-direction:column; gap:10px; margin-top:6px }
+    .small { color:var(--muted); font-size:13px }
+
+    @media (max-width: 980px) {
+      .layout { flex-direction:column }
+      .right { width:auto }
+      textarea#extractedText { min-height:200px }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">DI</div>
+      <div>
+        <h1>Document Intelligence</h1>
+        <p>Upload PDF/image, view extracted text & key fields instantly</p>
+      </div>
+    </header>
+
+    <div class="controls" title="Click the box to choose a file">
+      <!-- label acts as single-click file opener; we do NOT programmatically open input -->
+      <label class="file-wrapper" id="fileLabel">
+        <input id="fileInput" type="file" accept=".pdf,image/*" />
+        <div style="flex:1" class="file-info">
+          <div class="file-name" id="fileName">No file chosen</div>
+          <div class="file-meta" id="fileMeta">Choose a PDF or image to analyze</div>
+        </div>
+      </label>
+
+      <button id="btnUpload" class="btn">Upload & Analyze</button>
+      <div style="margin-left:auto"></div>
+    </div>
+
+    <div class="layout">
+      <div class="left">
+        <div class="card">
+          <h3 style="margin:0 0 8px 0">Summary</h3>
+          <div id="summary" class="summary">No file uploaded yet.</div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 10px 0">Extracted Text</h3>
+          <div class="extracted">
+            <textarea id="extractedText" placeholder="Extracted text will appear here..." readonly></textarea>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px">
+            <div class="hint">Tip: click an amount/date row below to highlight the matching line in the text area.</div>
+            <div>
+              <button id="btnCopy" class="btn.secondary">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px 0">Amounts → Context (what amount refers to)</h3>
+          <div id="amountsSection" style="max-height:360px; overflow:auto">
+            <div class="small">Upload a document to detect amounts — this table shows which line each amount belongs to.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px 0">Dates → Context (what date refers to)</h3>
+          <div id="datesSection" style="max-height:220px; overflow:auto">
+            <div class="small">Detected dates will appear here.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="card">
+          <h3 style="margin:0 0 12px 0">Key Fields</h3>
+          <div class="key-field"><div>Vendor</div><div id="f_vendor">—</div></div>
+          <div class="key-field"><div>Invoice #</div><div id="f_invoice">—</div></div>
+          <div class="key-field"><div>Dates</div><div id="f_dates">—</div></div>
+          <div class="key-field"><div>Amounts</div><div id="f_amounts">—</div></div>
+
+          <div style="margin-top:12px">
+            <div class="small" style="margin-bottom:8px"></div>
+            <div class="actions">
+              <button id="btnExportJson" class="btn.secondary" disabled>Export JSON</button>
+              <button id="btnCopyAmounts" class="btn.secondary" disabled>Copy amounts</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px 0">Upload status</h3>
+          <div id="uploadStatus" class="small">Ready</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+
+
+const fileInput = document.getElementById('fileInput');
+const fileNameEl = document.getElementById('fileName');
+const fileMetaEl = document.getElementById('fileMeta');
+const btnUpload = document.getElementById('btnUpload');
+const extractedTextEl = document.getElementById('extractedText');
+const summaryEl = document.getElementById('summary');
+const amountsSection = document.getElementById('amountsSection');
+const datesSection = document.getElementById('datesSection');
+const f_vendor = document.getElementById('f_vendor');
+const f_invoice = document.getElementById('f_invoice');
+const f_dates = document.getElementById('f_dates');
+const f_amounts = document.getElementById('f_amounts');
+const btnExportJson = document.getElementById('btnExportJson');
+const btnCopy = document.getElementById('btnCopy');
+const btnCopyAmounts = document.getElementById('btnCopyAmounts');
+const uploadStatus = document.getElementById('uploadStatus');
+
+let lastFilename = null;
+
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  if (!f) {
+    fileNameEl.textContent = 'No file chosen';
+    fileMetaEl.textContent = 'Choose a PDF or image to analyze';
+    return;
+  }
+  fileNameEl.textContent = f.name;
+  fileMetaEl.textContent = `${Math.round(f.size/1024)} KB • ${f.type || 'file'}`;
+});
+
+btnUpload.addEventListener('click', async () => {
+  const f = fileInput.files[0];
+  if (!f) { alert('Please choose a file first.'); return; }
+
+  // UI pre-flight
+  btnUpload.disabled = true;
+  btnUpload.textContent = 'Uploading...';
+  uploadStatus.textContent = 'Uploading...';
+  summaryEl.textContent = 'Processing...';
+
+  const fd = new FormData();
+  fd.append('file', f);
+
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const txt = await res.text();
+      summaryEl.textContent = `Server error: ${res.status} ${txt}`;
+      uploadStatus.textContent = 'Error';
+      return;
+    }
+
+    const j = await res.json();
+    lastFilename = j.filename || f.name;
+
+    // extracted text
+    const text = j.clean_text || j.text || '';
+    extractedTextEl.value = text || '';
+
+    // summary & status
+    if (j.error) {
+      summaryEl.textContent = j.summary || 'Partial result — see JSON for details.';
+      uploadStatus.textContent = 'Partial result (check JSON)';
+    } else {
+      summaryEl.textContent = j.summary || 'Extraction complete';
+      uploadStatus.textContent = 'Processing complete';
+    }
+
+    // fields mapping (robust to invoice/invoice_no)
+    const fields = j.fields || {};
+    f_vendor.textContent = fields.vendor || fields.client || '—';
+    f_invoice.textContent = fields.invoice || fields.invoice_no || '—';
+
+    // amounts/dates: normalize into arrays
+    let amounts = Array.isArray(fields.amounts) ? fields.amounts.map(String) :
+                  fields.amounts ? [String(fields.amounts)] : [];
+    let dates = Array.isArray(fields.dates) ? fields.dates.map(String) :
+                fields.dates ? [String(fields.dates)] : [];
+
+    // fallback regexes if backend didn't return amounts/dates
+    if (!amounts.length) {
+      const amtRegex = /(?:USD\s*)?(?:\$)?\d{1,3}(?:[,\d]*)(?:\.\d{1,2})?/g;
+      const found = new Set(); let m;
+      while ((m = amtRegex.exec(text)) !== null) found.add(m[0]);
+      amounts = Array.from(found);
+    }
+    if (!dates.length) {
+      const r1 = /\b\d{4}-\d{2}-\d{2}\b/g;
+      const r2 = /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g;
+      const r3 = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s*\d{4}\b/ig;
+      const found = new Set(); let mm;
+      [r1,r2,r3].forEach(rx => { while((mm=rx.exec(text))!==null) found.add(mm[0]); });
+      dates = Array.from(found);
+    }
+
+    // dedupe & cap results for display
+    amounts = Array.from(new Set(amounts)).slice(0, 50);
+    dates = Array.from(new Set(dates)).slice(0, 50);
+
+    f_dates.textContent = dates.length ? dates.join(' • ') : '—';
+    f_amounts.textContent = amounts.length ? amounts.join(' • ') : '—';
+
+    // render tables
+    renderAmountsTable(amounts, text);
+    renderDatesTable(dates, text);
+
+    // enable actions
+    btnExportJson.disabled = false;
+    btnCopyAmounts.disabled = false;
+
+  } catch (err) {
+    console.error(err);
+    summaryEl.textContent = 'Request failed: ' + (err.message || err);
+    uploadStatus.textContent = 'Failed';
+  } finally {
+    btnUpload.disabled = false;
+    btnUpload.textContent = 'Upload & Analyze';
+  }
+});
+
+function renderAmountsTable(amounts, text) {
+  amountsSection.innerHTML = '';
+  if (!amounts.length) { amountsSection.innerHTML = '<div class="small">No amounts detected.</div>'; return; }
+  const tbl = document.createElement('table'); tbl.className = 'table';
+  const thead = document.createElement('thead'); thead.innerHTML = '<tr><th>Amount</th><th>Context / line</th></tr>';
+  const tbody = document.createElement('tbody');
+  tbl.appendChild(thead); tbl.appendChild(tbody);
+
+  for (const a of amounts) {
+    const tr = document.createElement('tr');
+    const tdA = document.createElement('td'); tdA.textContent = a;
+    const ctx = findLineContext(text, a) || '—';
+    const tdC = document.createElement('td'); tdC.textContent = ctx;
+    tr.appendChild(tdA); tr.appendChild(tdC);
+    // click to highlight the matching text in textarea
+    tr.addEventListener('click', () => highlightText(ctx || a));
+    tbody.appendChild(tr);
+  }
+  amountsSection.appendChild(tbl);
+}
+
+function renderDatesTable(dates, text) {
+  datesSection.innerHTML = '';
+  if (!dates.length) { datesSection.innerHTML = '<div class="small">No dates detected.</div>'; return; }
+  const tbl = document.createElement('table'); tbl.className = 'table';
+  const thead = document.createElement('thead'); thead.innerHTML = '<tr><th>Date</th><th>Context / line</th></tr>';
+  const tbody = document.createElement('tbody');
+  tbl.appendChild(thead); tbl.appendChild(tbody);
+
+  for (const d of dates) {
+    const tr = document.createElement('tr');
+    const tdD = document.createElement('td'); tdD.textContent = d;
+    const ctx = findLineContext(text, d) || '—';
+    const tdC = document.createElement('td'); tdC.textContent = ctx;
+    tr.appendChild(tdD); tr.appendChild(tdC);
+    tr.addEventListener('click', () => highlightText(ctx || d));
+    tbody.appendChild(tr);
+  }
+  datesSection.appendChild(tbl);
+}
+
+function findLineContext(text, token) {
+  if (!text) return '';
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  for (const ln of lines) if (ln.includes(token)) return ln;
+  const digits = token.replace(/[^\d.]/g,'');
+  if (digits) for (const ln of lines) if (ln.includes(digits)) return ln;
+  for (const ln of lines) if (ln.toLowerCase().includes(token.toLowerCase())) return ln;
+  return '';
+}
+
+function highlightText(line) {
+  if (!line) return;
+  const text = extractedTextEl.value;
+  let idx = text.indexOf(line);
+  if (idx === -1) {
+    const digits = line.replace(/[^\d]/g,'');
+    idx = digits ? text.indexOf(digits) : -1;
+    if (idx === -1) return;
+    extractedTextEl.focus();
+    extractedTextEl.setSelectionRange(idx, idx + digits.length);
+    return;
+  }
+  extractedTextEl.focus();
+  extractedTextEl.setSelectionRange(idx, idx + line.length);
+}
+
+// Copy extracted text
+btnCopy.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(extractedTextEl.value || '');
+    btnCopy.textContent = 'Copied';
+    setTimeout(()=>btnCopy.textContent='Copy',1200);
+  } catch(e) { alert('Copy failed: ' + e); }
+});
+
+// Copy amounts
+btnCopyAmounts.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(f_amounts.textContent || '');
+    btnCopyAmounts.textContent = 'Copied';
+    setTimeout(()=>btnCopyAmounts.textContent='Copy amounts',1200);
+  } catch(e){ alert('Copy failed: ' + e); }
+});
+
+// Export JSON button uses GET /export_json?filename=<name>
+btnExportJson.addEventListener('click', async () => {
+  if (!lastFilename) { alert('Upload a file first.'); return; }
+  try {
+    const url = `/export_json?filename=${encodeURIComponent(lastFilename)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const txt = await res.text();
+      alert('Export JSON failed: ' + txt);
+      return;
+    }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = lastFilename + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    alert('Export JSON failed: ' + e);
+  }
+});
+
+// initial states
+(function init(){
+  btnExportJson.disabled = true;
+  btnCopyAmounts.disabled = true;
+})();
+</script>
+</body>
+</html>
